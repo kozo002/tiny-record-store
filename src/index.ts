@@ -10,7 +10,7 @@ type RecordStore = Map<RecordID, RecordStoreData>;
 type Watcher = (snapshot: RecordStore) => void;
 type Watchers = Map<string, Watcher>;
 
-export function createRecordManager(records: RecordType[]) {
+export function createRecordStore(records: RecordType[]) {
   let store: RecordStore = new Map();
   records.forEach((record) => {
     store.set(record.id, { record, editing: null });
