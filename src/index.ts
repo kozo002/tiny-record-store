@@ -10,23 +10,55 @@ type RecordStore = Map<RecordID, RecordStoreData>;
 type Watcher = (snapshot: RecordStore) => void;
 type Watchers = Map<string, Watcher>;
 
-export function createRecordStore(records: RecordType[]) {
+export function initializeStore(records: RecordType[]): RecordStore {
   let store: RecordStore = new Map();
   records.forEach((record) => {
     store.set(record.id, { record, editing: null });
   });
+  return store;
+}
 
-  let watchers: Watchers = new Map();
+function uuidv4() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    var r = (Math.random() * 16) | 0,
+      v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
+export function initializeWatchers(
+  store: RecordStore
+): {
+  runAllWatchers: () => void;
+  setWatcher: (watcher: Watcher) => void;
+  __watchers: Watchers;
+} {
+  const watchers: Watchers = new Map();
   const runAllWatchers = () => {
     watchers.forEach((watcher: Watcher) => {
       watcher(store);
     });
-  }
+  };
+  const setWatcher = (watcherFunc: Watcher) => {
+    const watcherID = uuidv4();
+    watchers.set(watcherID, watcherFunc);
+    const unwatch = () => {
+      watchers.delete(watcherID);
+    };
+    return unwatch;
+  };
+  return { runAllWatchers, setWatcher, __watchers: watchers };
+}
+
+export function createRecordStore(records: RecordType[]) {
+  const store = initializeStore(records);
+  const { runAllWatchers, setWatcher } = initializeWatchers(store);
 
   return {
     get(id: RecordID, options: { editing?: boolean } = {}): null | RecordType {
-      if (!id) { return null; }
+      if (!id) {
+        return null;
+      }
       const data = store.get(id);
       if (data) {
         if (options.editing) {
@@ -60,7 +92,7 @@ export function createRecordStore(records: RecordType[]) {
       records.forEach((record) => {
         let data = store.get(record.id);
         if (data) {
-          data.record = record
+          data.record = record;
         } else {
           data = { record, editing: null };
         }
@@ -69,7 +101,9 @@ export function createRecordStore(records: RecordType[]) {
     },
 
     delete(id: RecordID, options: { editing?: boolean } = {}) {
-      if (!id) { return; }
+      if (!id) {
+        return;
+      }
       let data = store.get(id);
       if (data) {
         if (options.editing) {
@@ -82,25 +116,10 @@ export function createRecordStore(records: RecordType[]) {
       }
     },
 
-    watch(watcherFunc: Watcher) {
-      const watcherID = uuidv4();
-      watchers.set(watcherID, watcherFunc);
-      const unwatch = () => {
-        watchers.delete(watcherID);
-      }
-      return unwatch;
-    },
+    watch: setWatcher,
 
     get count(): number {
       return Array.from(store.keys()).length;
-    }
-  }
-}
-
-function uuidv4() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    var r = (Math.random() * 16) | 0,
-      v = c == 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+    },
+  };
 }
