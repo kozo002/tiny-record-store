@@ -1,0 +1,16 @@
+{
+  "name": "tiny-record-store",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^3.9.7"
+  }
+}
